@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bikini Bottom Word Battle</title>
+    <link href="https://fonts.googleapis.com/css2?family=Balsamiq+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --sb-yellow: #fff700; --p-pink: #ff91d2; --ocean-blue: #0077be; --neon-glow: #00f2ff; }
+        * { font-family: 'Balsamiq Sans', cursive; box-sizing: border-box; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: #004466; color: white; }
+
+        .screen { display: none; width: 100%; height: 100%; background-size: cover; background-position: center; flex-direction: column; }
+        .active { display: flex; }
+
+        #home-screen { justify-content: center; align-items: center; background-image: url('homescreen.jpg'); }
+        .start-box { background: rgba(255,255,255,0.9); padding: 50px; border-radius: 40px; border: 10px solid var(--ocean-blue); text-align: center; }
+
+        #game-screen { background-image: url('gamescreen.jpg'); padding: 20px; display: none; flex-direction: row; justify-content: space-between; align-items: center; }
+        #game-screen.active { display: flex; }
+
+        .top-bar { position: absolute; top: 0; left: 0; width: 100%; height: 80px; display: flex; justify-content: center; align-items: center; pointer-events: none; }
+        .turn-indicator { font-size: 42px; text-shadow: 4px 4px #000; background: rgba(0,0,0,0.5); padding: 10px 40px; border-radius: 0 0 30px 30px; border: 3px solid var(--neon-glow); border-top: none; }
+        
+        .ui-btn { position: absolute; top: 20px; pointer-events: auto; padding: 10px 20px; font-size: 18px; border-radius: 30px; border: 3px solid white; cursor: pointer; transition: 0.3s; font-weight: 700; }
+        .quit-btn { left: 20px; background: #e74c3c; color: white; }
+        .music-btn { right: 20px; }
+        .music-on { background: #2ecc71; color: white; }
+        .music-off { background: #95a5a6; color: white; opacity: 0.7; }
+
+        .team-panel { width: 20%; height: 85%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); border-radius: 30px; border: 5px solid transparent; transition: 0.4s; }
+        .active-team { border-color: var(--neon-glow); box-shadow: 0 0 30px var(--neon-glow); background: rgba(0, 242, 255, 0.1); }
+
+        .char-img { width: 90%; max-height: 40%; object-fit: contain; animation: bounce 2s infinite ease-in-out; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+
+        .score-container { text-align: center; margin-top: 20px; }
+        .points-val { font-size: 50px; font-weight: 700; color: var(--sb-yellow); }
+        .adj-btns { display: flex; gap: 10px; margin-top: 10px; }
+        .adj-btn { width: 50px; height: 50px; font-size: 24px; border-radius: 50%; border: none; cursor: pointer; font-weight: 700; }
+        .btn-plus { background: #2ecc71; color: white; }
+        .btn-minus { background: #e74c3c; color: white; }
+
+        .center-area { width: 55%; display: flex; justify-content: center; align-items: center; }
+        .fish-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; }
+        .fish-btn { 
+            width: 216px; height: 144px; background-color: #add8e6; 
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; 
+            border: 5px solid white; cursor: pointer; display: flex; align-items: center; justify-content: center; 
+            font-size: 22px; font-weight: 700; color: #004466; position: relative; transition: 0.2s;
+            text-transform: lowercase;
+        }
+        .fish-btn::after { content: ''; position: absolute; right: -25px; top: 40px; border-top: 30px solid transparent; border-bottom: 30px solid transparent; border-left: 35px solid #add8e6; }
+
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 100; }
+        .question-card { background: white; padding: 40px; border-radius: 30px; text-align: center; border: 8px solid var(--ocean-blue); color: #333; position: relative; }
+        .choices { display: flex; gap: 30px; margin-top: 20px; }
+        .choice-img { width: 350px; height: 300px; border: 8px solid #ddd; border-radius: 20px; cursor: pointer; object-fit: cover; }
+
+        .close-results-btn {
+            position: absolute; top: 15px; right: 15px; width: 45px; height: 45px;
+            background: #e74c3c; color: white; border: 3px solid white; border-radius: 50%;
+            font-size: 24px; font-weight: 700; cursor: pointer; display: none;
+            align-items: center; justify-content: center; z-index: 101;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="home-screen" class="screen active">
+        <div class="start-box">
+            <h1 style="color:var(--ocean-blue); font-size: 50px;">Bikini Bottom Word Battle</h1>
+            <button class="btn-plus" style="padding: 20px 60px; border-radius: 50px; font-size: 30px; cursor: pointer;" onclick="initGame()">START GAME</button>
+        </div>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <div class="top-bar"><div class="turn-indicator" id="turn-txt">SpongeBob's Turn</div></div>
+        <button class="ui-btn quit-btn" onclick="quitToHome()">🏠 QUIT</button>
+        <button id="music-toggle" class="ui-btn music-btn music-on" onclick="toggleMusic()">🎵 Music: ON</button>
+
+        <div id="panel-sb" class="team-panel active-team">
+            <img src="SpongeBob.png" class="char-img" onerror="this.src='https://placehold.co/200?text=SpongeBob'">
+            <div class="score-container">
+                <div style="font-size:24px;">POINTS</div>
+                <div id="score-sb" class="points-val">0</div>
+                <div class="adj-btns">
+                    <button class="adj-btn btn-minus" onclick="adjustScore('sb', -1)">-</button>
+                    <button class="adj-btn btn-plus" onclick="adjustScore('sb', 1)">+</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="center-area"><div class="fish-grid" id="fish-container"></div></div>
+
+        <div id="panel-p" class="team-panel">
+            <img src="Patrick.png" class="char-img" onerror="this.src='https://placehold.co/200?text=Patrick'">
+            <div class="score-container">
+                <div style="font-size:24px;">POINTS</div>
+                <div id="score-p" class="points-val">0</div>
+                <div class="adj-btns">
+                    <button class="adj-btn btn-minus" onclick="adjustScore('p', -1)">-</button>
+                    <button class="adj-btn btn-plus" onclick="adjustScore('p', 1)">+</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="overlay">
+        <div class="question-card">
+            <button class="close-results-btn" onclick="closeResultsPage()">✕</button>
+            <div id="q-content"></div>
+        </div>
+    </div>
+
+    <script>
+        const vocabData = [
+            { en: "nap", zh: "午睡" },
+            { en: "read a book", zh: "看書" },
+            { en: "clean the dining room", zh: "打掃飯廳" },
+            { en: "fetch the table cloth", zh: "拿桌布" },
+            { en: "set the table", zh: "擺餐具" },
+            { en: "dinnertime", zh: "晚餐時間" }
+        ];
+
+        let scores = { sb: 0, p: 0 };
+        let currentTurn = 'sb';
+        
+        // Simple Audio Object
+        const bgMusic = new Audio('background music.mp3');
+        bgMusic.loop = true;
+
+        function initGame() {
+            scores = { sb: 0, p: 0 };
+            currentTurn = 'sb';
+            updateScoreDisplay();
+            updateTurnUI();
+            
+            // Direct playback triggered by user click
+            bgMusic.play().catch(e => console.error("Audio playback failed. Please check the file name."));
+            
+            showScreen('game-screen');
+        }
+
+        function toggleMusic() {
+            const btn = document.getElementById('music-toggle');
+            if (!bgMusic.paused) {
+                bgMusic.pause();
+                btn.innerText = "🎵 Music: OFF";
+                btn.className = "ui-btn music-btn music-off";
+            } else {
+                bgMusic.play();
+                btn.innerText = "🎵 Music: ON";
+                btn.className = "ui-btn music-btn music-on";
+            }
+        }
+
+        function quitToHome() {
+            bgMusic.pause();
+            bgMusic.currentTime = 0;
+            showScreen('home-screen');
+        }
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            if(id === 'game-screen') createFish();
+        }
+
+        function createFish() {
+            const container = document.getElementById('fish-container');
+            container.innerHTML = '';
+            vocabData.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = 'fish-btn';
+                btn.innerText = item.en.toLowerCase();
+                btn.onclick = () => openQuestion(item, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function openQuestion(item, btn) {
+            if(btn.disabled) return;
+            btn.style.opacity = "0.2"; btn.disabled = true;
+            document.getElementById('overlay').style.display = 'flex';
+            document.querySelector('.close-results-btn').style.display = 'none';
+
+            let otherItems = vocabData.filter(v => v.en !== item.en);
+            let wrongItem = otherItems[Math.floor(Math.random() * otherItems.length)];
+            const isCorrectLeft = Math.random() > 0.5;
+
+            document.getElementById('q-content').innerHTML = `
+                <h2 style="font-size:36px; color:var(--ocean-blue); margin-bottom: 20px;">where is: "${item.en.toLowerCase()}"?</h2>
+                <div class="choices">
+                    <img src="${encodeURIComponent((isCorrectLeft ? item.en : wrongItem.en) + '.jpg')}" class="choice-img" onerror="this.src='https://placehold.co/320x260?text=Check+File'" onclick="handleAnswer(${isCorrectLeft}, '${item.zh}')">
+                    <img src="${encodeURIComponent((isCorrectLeft ? wrongItem.en : item.en) + '.jpg')}" class="choice-img" onerror="this.src='https://placehold.co/320x260?text=Check+File'" onclick="handleAnswer(${!isCorrectLeft}, '${item.zh}')">
+                </div>
+            `;
+        }
+
+        function handleAnswer(isCorrect, translation) {
+            const content = document.getElementById('q-content');
+            document.querySelector('.close-results-btn').style.display = 'flex';
+            if(isCorrect) {
+                const p = Math.floor(Math.random() * 3) + 1;
+                adjustScore(currentTurn, p);
+                content.innerHTML = `<h1 style="color:#2ecc71; font-size:60px; margin-top:0;">correct! 🎉</h1><div style="font-size:40px;">${translation}</div><h2 style="font-size:32px;">+${p} points!</h2>`;
+            } else {
+                adjustScore(currentTurn, -2);
+                content.innerHTML = `<h1 style="color:#e74c3c; font-size:60px; margin-top:0;">oh no! 💣</h1><div style="font-size:40px;">${translation}</div><h2 style="font-size:32px;">-2 points</h2>`;
+            }
+        }
+
+        function closeResultsPage() {
+            document.getElementById('overlay').style.display = 'none';
+            currentTurn = (currentTurn === 'sb') ? 'p' : 'sb';
+            updateTurnUI();
+        }
+
+        function adjustScore(team, val) {
+            scores[team] = Math.max(0, scores[team] + val);
+            updateScoreDisplay();
+        }
+
+        function updateScoreDisplay() {
+            document.getElementById(`score-sb`).innerText = scores.sb;
+            document.getElementById(`score-p`).innerText = scores.p;
+        }
+
+        function updateTurnUI() {
+            const name = currentTurn === 'sb' ? "SpongeBob" : "Patrick";
+            document.getElementById('turn-txt').innerText = `${name}'s Turn`;
+            document.getElementById('panel-sb').className = currentTurn === 'sb' ? 'team-panel active-team' : 'team-panel';
+            document.getElementById('panel-p').className = currentTurn === 'p' ? 'team-panel active-team' : 'team-panel';
+        }
+    </script>
+</body>
+</html>
